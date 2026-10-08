@@ -1,4 +1,4 @@
-.PHONY: fmt check test test-integration build docker-build test-containers compare-runtime test-deploy test-production-compose
+.PHONY: fmt check test test-integration build docker-build test-containers test-deploy test-production-compose
 fmt:
 	gofmt -w cmd internal migrations
 check:
@@ -17,9 +17,6 @@ docker-build:
 test-containers: docker-build
 	docker build --target fixture-api -t dota-doggo:fixture-api .
 	python3 scripts/smoke_containers.py
-compare-runtime: docker-build
-	docker build --target fixture-api -t dota-doggo:fixture-api .
-	python3 scripts/compare_runtime.py
 test-deploy:
 	bash -n deploy/deploy.sh scripts/deploy_vps.sh scripts/test_deploy.sh
 	docker run --rm --network none --entrypoint bash \
