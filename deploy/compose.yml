@@ -1,0 +1,54 @@
+# VPS deployment. Application image is supplied by the release script.
+x-application: &application
+  image: ${DOTA_DOGGO_IMAGE:?Set an immutable release image}
+  env_file: ${DOTA_DOGGO_ENV_FILE:?Set the absolute application env path}
+  environment:
+    DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:?Set a URL-safe PostgreSQL password}@db:5432/dota_doggo?sslmode=disable
+    HEALTH_ADDR: 127.0.0.1:8080
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  stop_grace_period: 30s
+  depends_on:
+    db:
+      condition: service_healthy
+  logging: &logging
+    driver: local
+    options:
+      max-size: 10m
+      max-file: "3"
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: dota_doggo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a PostgreSQL password}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -h 127.0.0.1 -U postgres -d dota_doggo]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  bot:
+    <<: *application
+    command: [bot]
+    healthcheck:
+      test: [CMD, /dota-doggo, healthcheck, bot]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+  worker:
+    <<: *application
+    command: [worker]
+    healthcheck:
+      test: [CMD, /dota-doggo, healthcheck, worker]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+volumes:
+  postgres_data:

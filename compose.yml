@@ -1,0 +1,72 @@
+# Local development with a separate PostgreSQL database.
+x-application: &application
+  image: dota-doggo:local
+  build: .
+  environment:
+    BOT_TOKEN: ${BOT_TOKEN:?Set BOT_TOKEN for a separate test bot}
+    DATABASE_URL: postgres://postgres:local-dev-only@db:5432/dota_doggo?sslmode=disable
+    OPENDOTA_BASE_URL: ${OPENDOTA_BASE_URL:-https://api.opendota.com/api}
+    OPENDOTA_API_KEY: ${OPENDOTA_API_KEY:-}
+    TELEGRAM_BASE_URL: ${TELEGRAM_BASE_URL:-https://api.telegram.org}
+    TELEGRAM_PROXY_URL: ${TELEGRAM_PROXY_URL:-}
+    POLL_INTERVAL_MINUTES: ${POLL_INTERVAL_MINUTES:-15}
+    DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-UTC}
+    ALLOWED_TELEGRAM_USER_IDS: ${ALLOWED_TELEGRAM_USER_IDS:-}
+    TELEGRAM_ADMIN_CHECK_ENABLED: ${TELEGRAM_ADMIN_CHECK_ENABLED:-true}
+    OPENDOTA_MAX_RETRIES: ${OPENDOTA_MAX_RETRIES:-3}
+    TELEGRAM_SEND_MAX_RETRIES: ${TELEGRAM_SEND_MAX_RETRIES:-3}
+    RETRY_BACKOFF_SECONDS: ${RETRY_BACKOFF_SECONDS:-1}
+    CONSTANTS_SYNC_INTERVAL_HOURS: ${CONSTANTS_SYNC_INTERVAL_HOURS:-24}
+    DB_MAX_CONNS: ${DB_MAX_CONNS:-5}
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    HEALTH_ADDR: 127.0.0.1:8080
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  stop_grace_period: 30s
+  logging: &logging
+    driver: local
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: dota_doggo
+      POSTGRES_PASSWORD: local-dev-only
+    ports: [127.0.0.1:55440:5432]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d dota_doggo]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+  bot:
+    <<: *application
+    command: [bot]
+    healthcheck:
+      test: [CMD, /dota-doggo, healthcheck, bot]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+  worker:
+    <<: *application
+    command: [worker]
+    healthcheck:
+      test: [CMD, /dota-doggo, healthcheck, worker]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+
+volumes:
+  postgres_data:

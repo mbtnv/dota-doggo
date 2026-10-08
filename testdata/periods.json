@@ -1,0 +1,146 @@
+[
+  {
+    "timezone": "Europe/Moscow",
+    "now": "2026-01-01T01:00:00+00:00",
+    "period": "day",
+    "previous": false,
+    "start": "2025-12-31T21:00:00+00:00",
+    "end": "2026-01-01T21:00:00+00:00"
+  },
+  {
+    "timezone": "Europe/Moscow",
+    "now": "2026-01-01T01:00:00+00:00",
+    "period": "day",
+    "previous": true,
+    "start": "2025-12-30T21:00:00+00:00",
+    "end": "2025-12-31T21:00:00+00:00"
+  },
+  {
+    "timezone": "Europe/Moscow",
+    "now": "2026-01-01T01:00:00+00:00",
+    "period": "week",
+    "previous": false,
+    "start": "2025-12-28T21:00:00+00:00",
+    "end": "2026-01-04T21:00:00+00:00"
+  },
+  {
+    "timezone": "Europe/Moscow",
+    "now": "2026-01-01T01:00:00+00:00",
+    "period": "week",
+    "previous": true,
+    "start": "2025-12-21T21:00:00+00:00",
+    "end": "2025-12-28T21:00:00+00:00"
+  },
+  {
+    "timezone": "Europe/Moscow",
+    "now": "2026-01-01T01:00:00+00:00",
+    "period": "month",
+    "previous": false,
+    "start": "2025-12-31T21:00:00+00:00",
+    "end": "2026-01-31T21:00:00+00:00"
+  },
+  {
+    "timezone": "Europe/Moscow",
+    "now": "2026-01-01T01:00:00+00:00",
+    "period": "month",
+    "previous": true,
+    "start": "2025-11-30T21:00:00+00:00",
+    "end": "2025-12-31T21:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-03-09T12:00:00+00:00",
+    "period": "day",
+    "previous": false,
+    "start": "2026-03-09T04:00:00+00:00",
+    "end": "2026-03-10T04:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-03-09T12:00:00+00:00",
+    "period": "day",
+    "previous": true,
+    "start": "2026-03-08T05:00:00+00:00",
+    "end": "2026-03-09T04:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-03-09T12:00:00+00:00",
+    "period": "week",
+    "previous": false,
+    "start": "2026-03-09T04:00:00+00:00",
+    "end": "2026-03-16T04:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-03-09T12:00:00+00:00",
+    "period": "week",
+    "previous": true,
+    "start": "2026-03-02T05:00:00+00:00",
+    "end": "2026-03-09T04:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-03-09T12:00:00+00:00",
+    "period": "month",
+    "previous": false,
+    "start": "2026-03-01T05:00:00+00:00",
+    "end": "2026-04-01T04:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-03-09T12:00:00+00:00",
+    "period": "month",
+    "previous": true,
+    "start": "2026-02-01T05:00:00+00:00",
+    "end": "2026-03-01T05:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-11-02T12:00:00+00:00",
+    "period": "day",
+    "previous": false,
+    "start": "2026-11-02T05:00:00+00:00",
+    "end": "2026-11-03T05:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-11-02T12:00:00+00:00",
+    "period": "day",
+    "previous": true,
+    "start": "2026-11-01T04:00:00+00:00",
+    "end": "2026-11-02T05:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-11-02T12:00:00+00:00",
+    "period": "week",
+    "previous": false,
+    "start": "2026-11-02T05:00:00+00:00",
+    "end": "2026-11-09T05:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-11-02T12:00:00+00:00",
+    "period": "week",
+    "previous": true,
+    "start": "2026-10-26T04:00:00+00:00",
+    "end": "2026-11-02T05:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-11-02T12:00:00+00:00",
+    "period": "month",
+    "previous": false,
+    "start": "2026-11-01T04:00:00+00:00",
+    "end": "2026-12-01T05:00:00+00:00"
+  },
+  {
+    "timezone": "America/New_York",
+    "now": "2026-11-02T12:00:00+00:00",
+    "period": "month",
+    "previous": true,
+    "start": "2026-10-01T04:00:00+00:00",
+    "end": "2026-11-01T04:00:00+00:00"
+  }
+]

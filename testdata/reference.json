@@ -1,0 +1,192 @@
+{
+  "source_commit": "1b77e26702e778a13b5b1e5b6e7a968feb5ff68c",
+  "players": [
+    {
+      "player_id": 1,
+      "dota_account_id": 123456789,
+      "display_name": "Example <player>",
+      "profile_url": null,
+      "alias": "mid & carry",
+      "last_seen_match_id": null
+    },
+    {
+      "player_id": 2,
+      "dota_account_id": 987654321,
+      "display_name": "Second",
+      "profile_url": null,
+      "alias": null,
+      "last_seen_match_id": 998
+    }
+  ],
+  "matches": [
+    {
+      "player_id": 1,
+      "match_id": 999,
+      "start_time": "2026-03-10T14:25:00+00:00",
+      "end_time": "2026-03-10T15:00:00+00:00",
+      "hero_id": 74,
+      "radiant_win": true,
+      "player_slot": 0,
+      "kills": 5,
+      "deaths": 5,
+      "assists": 10,
+      "gpm": 700,
+      "xpm": 800,
+      "hero_damage": 23000,
+      "tower_damage": 5000,
+      "hero_healing": 0,
+      "last_hits": 320,
+      "game_mode": 22,
+      "lobby_type": 7,
+      "party_size": 2,
+      "raw_payload": {}
+    },
+    {
+      "player_id": 2,
+      "match_id": 999,
+      "start_time": "2026-03-10T14:25:00+00:00",
+      "end_time": "2026-03-10T15:00:00+00:00",
+      "hero_id": 5,
+      "radiant_win": true,
+      "player_slot": 129,
+      "kills": 0,
+      "deaths": 6,
+      "assists": 1,
+      "gpm": 300,
+      "xpm": 400,
+      "hero_damage": 9000,
+      "tower_damage": 0,
+      "hero_healing": 5000,
+      "last_hits": 30,
+      "game_mode": 22,
+      "lobby_type": 7,
+      "party_size": null,
+      "raw_payload": {}
+    }
+  ],
+  "summary_matches": [
+    {
+      "player_id": 1,
+      "match_id": 999,
+      "start_time": "2026-03-10T14:25:00+00:00",
+      "end_time": "2026-03-10T15:00:00+00:00",
+      "hero_id": 74,
+      "radiant_win": true,
+      "player_slot": 0,
+      "kills": 5,
+      "deaths": 5,
+      "assists": 10,
+      "gpm": 700,
+      "xpm": 800,
+      "hero_damage": 23000,
+      "tower_damage": 5000,
+      "hero_healing": 0,
+      "last_hits": 320,
+      "game_mode": 22,
+      "lobby_type": 7,
+      "party_size": 2,
+      "raw_payload": {}
+    },
+    {
+      "player_id": 1,
+      "match_id": 1000,
+      "start_time": "2026-03-10T14:25:00+00:00",
+      "end_time": "2026-03-10T16:00:00+00:00",
+      "hero_id": 74,
+      "radiant_win": false,
+      "player_slot": 0,
+      "kills": 5,
+      "deaths": 5,
+      "assists": 10,
+      "gpm": 700,
+      "xpm": 800,
+      "hero_damage": 23000,
+      "tower_damage": 5000,
+      "hero_healing": 0,
+      "last_hits": 320,
+      "game_mode": 22,
+      "lobby_type": 7,
+      "party_size": 2,
+      "raw_payload": {}
+    }
+  ],
+  "summary": {
+    "player_id": 1,
+    "label": "mid & carry",
+    "period_type": "day",
+    "period_start": "2026-03-10T00:00:00+00:00",
+    "period_end": "2026-03-11T00:00:00+00:00",
+    "matches_count": 2,
+    "wins": 1,
+    "losses": 1,
+    "winrate": 50.0,
+    "avg_kills": 5.0,
+    "avg_deaths": 5.0,
+    "avg_assists": 10.0,
+    "avg_gpm": 700.0,
+    "avg_xpm": 800.0,
+    "avg_duration_minutes": 65.0,
+    "avg_hero_damage": 23000.0,
+    "best_streak": 1,
+    "worst_streak": 1,
+    "top_heroes": [
+      [
+        74,
+        2
+      ]
+    ]
+  },
+  "notification": "<b>mid &amp; carry</b> · <a href=\"https://www.dotabuff.com/players/123456789\">profile</a>\n🟢<b>Win</b> · Invoker\n<b>KDA</b>: 5/5/10 | <b>Govnoedstvo</b>: 42%\n<b>Ended</b>: 2026-03-10 18:00 MSK (35 min)\n<b>GPM/XPM</b>: 700 / 800\n<b>HD/TD/HH</b>: 23.0K / 5.0K / 0.0K\n<b>Last hits</b>: 320\n<b>Mode</b>: All Pick · Ranked · Party 2\n<a href=\"https://www.dotabuff.com/matches/999\">Dotabuff</a>",
+  "group": "<b>mid &amp; carry, Second</b>\n<b>Ended</b>: 2026-03-10 18:00 MSK (35 min)\n<b>Mode</b>: All Pick · Ranked\n<b>mid &amp; carry</b> · <a href=\"https://www.dotabuff.com/players/123456789\">profile</a> · 🟢<b>Win</b> · Invoker · Party 2\n<b>KDA</b>: 5/5/10 | <b>Govnoedstvo</b>: 42% | <b>GPM/XPM</b>: 700 / 800 | <b>Last hits</b>: 320\n<b>HD/TD/HH</b>: 23.0K / 5.0K / 0.0K\n<b>Second</b> · <a href=\"https://www.dotabuff.com/players/987654321\">profile</a> · 🔴<b>Lose</b> · Crystal Maiden\n<b>KDA</b>: 0/6/1 | <b>Govnoedstvo</b>: 100% | <b>GPM/XPM</b>: 300 / 400 | <b>Last hits</b>: 30\n<b>HD/TD/HH</b>: 9.0K / 0.0K / 5.0K\n<a href=\"https://www.dotabuff.com/matches/999\">Dotabuff</a>",
+  "report": "<b>mid &amp; carry</b> · day\nMatches: 2 | W/L: 1/1 | WR: 50.00%\nK/D/A avg: 5.00/5.00/10.00\nGPM/XPM avg: 700.00/800.00\nAvg duration: 65.00 min\nAvg hero damage: 23000.00\nBest/Worst streak: 1/1\nTop heroes: Invoker x2",
+  "statistics": [
+    {
+      "kills": 0,
+      "deaths": 6,
+      "assists": 1,
+      "percent": 100
+    },
+    {
+      "kills": 0,
+      "deaths": 10,
+      "assists": 11,
+      "percent": 100
+    },
+    {
+      "kills": 1,
+      "deaths": 14,
+      "assists": 1,
+      "percent": 100
+    },
+    {
+      "kills": 12,
+      "deaths": 2,
+      "assists": 26,
+      "percent": 0
+    },
+    {
+      "kills": 9,
+      "deaths": 2,
+      "assists": 12,
+      "percent": 0
+    },
+    {
+      "kills": 15,
+      "deaths": 8,
+      "assists": 27,
+      "percent": 0
+    },
+    {
+      "kills": 5,
+      "deaths": 5,
+      "assists": 10,
+      "percent": 42
+    },
+    {
+      "kills": 7,
+      "deaths": 1,
+      "assists": 3,
+      "percent": 42
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+**
+!go.mod
+!go.sum
+!cmd/
+!cmd/**
+!internal/
+!internal/**
+!migrations/
+!migrations/**
+!testdata/
+!testdata/opendota-recent.json
+**/*_test.go
+**/.env*

@@ -1,0 +1,15 @@
+[
+  {
+    "match_id": 999,
+    "player_slot": 0,
+    "radiant_win": true,
+    "duration": 2100,
+    "game_mode": 22,
+    "lobby_type": 7,
+    "hero_id": 74,
+    "start_time": 1773152700,
+    "kills": 5,
+    "deaths": 5,
+    "assists": 10
+  }
+]

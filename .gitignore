@@ -1,0 +1,49 @@
+# Local configuration and secrets (keep example files)
+.env
+.env.*
+!.env.example
+/secrets/
+
+# Documentation
+/docs/
+
+# Go build outputs, coverage and profiles
+/bin/
+/dota-doggo
+/dist/
+*.test
+*.exe
+/coverage*.out
+/coverage*.html
+/coverage/
+*.prof
+*.pprof
+
+# Local runtime data and database backups
+/.cache/
+/tmp/
+/backups/
+*.log
+*.dump
+*.dump.gz
+*.sql.gz
+
+# Local Docker Compose overrides
+compose.override.yml
+compose.override.yaml
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# Python helper scripts
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Editor and OS files
+.idea/
+.DS_Store
+._*
+*.swp
+*.swo
+*~
