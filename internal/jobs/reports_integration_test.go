@@ -50,7 +50,7 @@ func TestAutoReportUsesLocalPreviousPeriodAndManualDoesNotSuppressIt(t *testing.
 		t.Fatal(err)
 	}
 	sent := sender.snapshot()
-	if len(sent) != 1 || !strings.Contains(sent[0].text, "Matches: 1") || strings.Contains(sent[0].text, "empty") {
+	if len(sent) != 1 || !sent[0].rich || !strings.Contains(sent[0].text, "<b>Матчи:</b> 1") || strings.Contains(sent[0].text, "empty") || !strings.Contains(sent[0].text, "08.03.2026") {
 		t.Fatal(sent)
 	}
 	runs, err := repo.LatestReports(ctx, topic.ID)
@@ -99,6 +99,43 @@ func TestEmptyDayIsSealedSilentlyAndWeekMonthRemainAvailable(t *testing.T) {
 	}
 	if len(sender.snapshot()) != 3 {
 		t.Fatal("next month was suppressed")
+	}
+}
+
+func TestPendingLegacyDailyReportResumesWithoutChangingFormat(t *testing.T) {
+	ctx, _, repo, _, sender, w := setup(t)
+	topic, _ := track(t, ctx, repo, -1, 123, "Player", nil)
+	start, end, err := domain.Day.Bounds(w.now(), "UTC", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.QueueReport(ctx, topic.ID, "day", start, end); err != nil {
+		t.Fatal(err)
+	}
+	pending, err := repo.PendingReportIDs(ctx, topic.ID, "day")
+	if err != nil || len(pending) != 1 {
+		t.Fatal(pending, err)
+	}
+	parts := []string{"<b>Previously acknowledged part</b>", "<b>Pending legacy part</b>"}
+	if err := repo.PrepareReportDelivery(ctx, pending[0], parts); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.AdvanceReportDelivery(ctx, pending[0], 99); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.ReportsOnce(ctx, domain.Day); err != nil {
+		t.Fatal(err)
+	}
+	sent := sender.snapshot()
+	if len(sent) != 1 || sent[0].rich || sent[0].text != parts[1] {
+		t.Fatal("legacy delivery reformatted or duplicated", sent)
+	}
+	runs, err := repo.LatestReports(ctx, topic.ID)
+	if err != nil || len(runs) != 1 || runs[0].Trigger != "auto" || runs[0].MessageID == nil || *runs[0].MessageID != 1 {
+		t.Fatal(runs, err)
+	}
+	if err := w.ReportsOnce(ctx, domain.Day); err != nil || len(sender.snapshot()) != 1 {
+		t.Fatal("legacy report sent again", err)
 	}
 }
 func TestReportFailureDoesNotRollbackOtherTopicsAndCanRetry(t *testing.T) {

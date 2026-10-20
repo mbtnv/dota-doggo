@@ -33,6 +33,7 @@ type Repository interface {
 type Telegram interface {
 	SendHTML(context.Context, domain.Topic, string) ([]int64, error)
 	SendParts(context.Context, domain.Topic, []string) ([]int64, error)
+	SendReportParts(context.Context, domain.Topic, []string) ([]int64, error)
 	IsAdmin(context.Context, int64, int64) (bool, error)
 }
 type OpenDota interface {
@@ -302,11 +303,16 @@ func (h *Handler) execute(ctx context.Context, t domain.Topic, m telegram.Messag
 		if err != nil {
 			return err
 		}
-		parts, err := format.SplitSections("<b>Отчёт · "+periodText+"</b>", h.Formatter.ReportSections(summaries, constants), format.TelegramTextLimit)
+		var parts []string
+		if period == domain.Day {
+			parts, err = h.Formatter.DailyReportParts(summaries, constants, t.Timezone)
+		} else {
+			parts, err = format.SplitSections("<b>Отчёт · "+periodText+"</b>", h.Formatter.ReportSections(summaries, constants), format.TelegramTextLimit)
+		}
 		if err != nil {
 			return err
 		}
-		messages, err := h.Telegram.SendParts(ctx, t, parts)
+		messages, err := h.Telegram.SendReportParts(ctx, t, parts)
 		if err != nil {
 			return err
 		}

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"dota-doggo/internal/domain"
+	"dota-doggo/internal/format"
 	"dota-doggo/internal/opendota"
 )
 
@@ -44,9 +45,9 @@ func TestReviewFailedPollMustNotSealDay(t *testing.T) {
 	}
 	dayReports := 0
 	for _, sent := range sender.snapshot() {
-		if strings.Contains(sent.text, "<b>day report</b>") {
+		if sent.rich && strings.Contains(sent.text, "Дневной отчёт") {
 			dayReports++
-			if !strings.Contains(sent.text, "Matches: 2") {
+			if !strings.Contains(sent.text, "<b>Матчи:</b> 2") {
 				t.Fatal("incomplete report", sent.text)
 			}
 		}
@@ -152,7 +153,8 @@ func TestReviewReportRetryMustNotDuplicateAcknowledgedParts(t *testing.T) {
 		t.Fatal("missing report parts", sender.snapshot())
 	}
 	for i, sent := range sender.snapshot() {
-		if sent.text != snapshot.Parts[i] {
+		part, err := format.DecodeReportPart(snapshot.Parts[i])
+		if err != nil || !sent.rich || sent.text != part.HTML {
 			t.Fatal("report snapshot changed")
 		}
 	}
@@ -199,7 +201,7 @@ func TestFailedPollDefersOnlyItsTopicAndSurvivesNextDay(t *testing.T) {
 	}
 	count := 0
 	for _, sent := range sender.snapshot() {
-		if sent.topic.ID == bad.ID && strings.Contains(sent.text, "<b>day report</b>") && strings.Contains(sent.text, "Matches: 1") {
+		if sent.topic.ID == bad.ID && sent.rich && strings.Contains(sent.text, "Дневной отчёт") && strings.Contains(sent.text, "<b>Матчи:</b> 1") {
 			count++
 		}
 	}

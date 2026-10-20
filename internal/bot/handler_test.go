@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"dota-doggo/internal/domain"
+	"dota-doggo/internal/format"
 	"dota-doggo/internal/telegram"
 )
 
@@ -49,6 +50,7 @@ type fakeTelegram struct {
 	admin        bool
 	adminErr     error
 	checks       int
+	reports      []format.ReportPart
 }
 
 func (f *fakeTelegram) SendHTML(ctx context.Context, topic domain.Topic, text string) ([]int64, error) {
@@ -64,6 +66,22 @@ func (f *fakeTelegram) SendParts(ctx context.Context, topic domain.Topic, parts 
 			return ids, err
 		}
 		ids = append(ids, v...)
+	}
+	return ids, nil
+}
+func (f *fakeTelegram) SendReportParts(ctx context.Context, topic domain.Topic, parts []string) ([]int64, error) {
+	var ids []int64
+	for _, part := range parts {
+		p, err := format.DecodeReportPart(part)
+		if err != nil {
+			return ids, err
+		}
+		f.reports = append(f.reports, p)
+		v, err := f.SendHTML(ctx, topic, p.HTML)
+		ids = append(ids, v...)
+		if err != nil {
+			return ids, err
+		}
 	}
 	return ids, nil
 }

@@ -101,13 +101,22 @@ func TestCommandsPersistSettingsReportsAndRouteTopics(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	command("/report day 123", "Matches: 1")
-	command("/report day", "Matches: 1")
+	command("/report day 123", "<b>Матчи:</b> 1")
+	if len(tg.reports) != 1 || tg.reports[0].Format != format.RichHTMLFormat || !strings.Contains(tg.reports[0].HTML, "mid &lt;carry&gt;") || strings.Contains(tg.reports[0].HTML, "support") {
+		t.Fatal("filtered daily report", tg.reports)
+	}
+	command("/report day", "<b>Матчи:</b> 1")
+	if len(tg.reports) != 2 || tg.reports[1].Format != format.RichHTMLFormat || !strings.Contains(tg.reports[1].HTML, "<table") || !strings.Contains(tg.reports[1].HTML, "08.10.2026") || !strings.Contains(tg.reports[1].HTML, "Europe/Moscow") {
+		t.Fatal("daily rich report", tg.reports)
+	}
 	if strings.Contains(tg.messages[len(tg.messages)-1], "empty") {
 		t.Fatal("day report included an empty player")
 	}
 	command("/report week", "mid &lt;carry&gt;")
 	command("/report month", "support")
+	if tg.reports[2].Format != "" || tg.reports[3].Format != "" {
+		t.Fatal("week/month unexpectedly use rich messages")
+	}
 	command("/report year", "day, week или month")
 	command("/report day missing", "не найден")
 	command("/leaders day", "WR 100.00%")

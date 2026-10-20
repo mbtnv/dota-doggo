@@ -287,6 +287,63 @@ func (c *Client) SendHTML(ctx context.Context, topic domain.Topic, text string) 
 	return c.SendParts(ctx, topic, parts)
 }
 
+// SendReportParts accepts versioned rich snapshots and legacy HTML deliveries.
+// Each successful part is acknowledged independently, just like SendParts.
+func (c *Client) SendReportParts(ctx context.Context, topic domain.Topic, parts []string) ([]int64, error) {
+	decoded := make([]format.ReportPart, len(parts))
+	for i, part := range parts {
+		p, err := format.DecodeReportPart(part)
+		if err != nil {
+			return nil, err
+		}
+		if p.HTML == "" {
+			return nil, errors.New("empty report part")
+		}
+		// Validate balance without splitting structural rich blocks. Ordinary
+		// messages must additionally fit Telegram's regular text limit.
+		limit := format.TelegramTextLimit
+		if p.Format == format.RichHTMLFormat {
+			limit = len(p.HTML)
+		}
+		chunks, err := format.SplitHTML(p.HTML, limit)
+		if err != nil || len(chunks) != 1 {
+			return nil, errors.New("invalid report HTML")
+		}
+		decoded[i] = p
+	}
+	var ids []int64
+	for _, p := range decoded {
+		if p.Format == "" {
+			partIDs, err := c.SendParts(ctx, topic, []string{p.HTML})
+			ids = append(ids, partIDs...)
+			if err != nil {
+				return ids, err
+			}
+			continue
+		}
+		var message Message
+		err := c.call(ctx, "sendRichMessage", struct {
+			ChatID   int64  `json:"chat_id"`
+			ThreadID *int64 `json:"message_thread_id,omitempty"`
+			Rich     struct {
+				HTML                string `json:"html"`
+				SkipEntityDetection bool   `json:"skip_entity_detection"`
+			} `json:"rich_message"`
+		}{topic.ChatID, topic.ThreadID, struct {
+			HTML                string `json:"html"`
+			SkipEntityDetection bool   `json:"skip_entity_detection"`
+		}{p.HTML, true}}, &message)
+		if err != nil {
+			return ids, err
+		}
+		if message.ID <= 0 {
+			return ids, errors.New("invalid Telegram message ID")
+		}
+		ids = append(ids, message.ID)
+	}
+	return ids, nil
+}
+
 // Poll acknowledges each update after dispatch, skips duplicates within a batch,
 // and backs off on temporary errors. A permanent API failure (e.g. conflict with
 // another poller) is returned to the process rather than retried forever.

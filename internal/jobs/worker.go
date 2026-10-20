@@ -24,6 +24,7 @@ type RecentAPI interface {
 type Sender interface {
 	SendHTML(context.Context, domain.Topic, string) ([]int64, error)
 	SendParts(context.Context, domain.Topic, []string) ([]int64, error)
+	SendReportParts(context.Context, domain.Topic, []string) ([]int64, error)
 }
 type Worker struct {
 	Pool      *pgxpool.Pool

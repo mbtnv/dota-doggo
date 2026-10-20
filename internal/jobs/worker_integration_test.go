@@ -14,6 +14,7 @@ import (
 
 	"dota-doggo/internal/bot"
 	"dota-doggo/internal/domain"
+	"dota-doggo/internal/format"
 	"dota-doggo/internal/opendota"
 	"dota-doggo/internal/store/postgres"
 	"dota-doggo/internal/telegram"
@@ -44,6 +45,7 @@ func (a *fakeAPI) RateLimits(context.Context, bool) (*opendota.RateLimits, error
 type delivery struct {
 	topic domain.Topic
 	text  string
+	rich  bool
 }
 type fakeSender struct {
 	mu        sync.Mutex
@@ -54,6 +56,9 @@ type fakeSender struct {
 }
 
 func (s *fakeSender) SendHTML(ctx context.Context, topic domain.Topic, text string) ([]int64, error) {
+	return s.send(ctx, topic, text, false)
+}
+func (s *fakeSender) send(ctx context.Context, topic domain.Topic, text string, rich bool) ([]int64, error) {
 	if s.hook != nil {
 		if err := s.hook(ctx); err != nil {
 			return nil, err
@@ -64,7 +69,7 @@ func (s *fakeSender) SendHTML(ctx context.Context, topic domain.Topic, text stri
 	if (s.failMatch != "" && strings.Contains(text, s.failMatch)) || s.failTopic == topic.ID && s.failTopic != 0 {
 		return nil, errors.New("Telegram unavailable secret-token")
 	}
-	s.sent = append(s.sent, delivery{topic, text})
+	s.sent = append(s.sent, delivery{topic: topic, text: text, rich: rich})
 	return []int64{int64(len(s.sent))}, nil
 }
 func (s *fakeSender) SendParts(ctx context.Context, topic domain.Topic, parts []string) ([]int64, error) {
@@ -75,6 +80,21 @@ func (s *fakeSender) SendParts(ctx context.Context, topic domain.Topic, parts []
 			return ids, err
 		}
 		ids = append(ids, v...)
+	}
+	return ids, nil
+}
+func (s *fakeSender) SendReportParts(ctx context.Context, topic domain.Topic, parts []string) ([]int64, error) {
+	var ids []int64
+	for _, part := range parts {
+		p, err := format.DecodeReportPart(part)
+		if err != nil {
+			return ids, err
+		}
+		v, err := s.send(ctx, topic, p.HTML, p.Format == format.RichHTMLFormat)
+		ids = append(ids, v...)
+		if err != nil {
+			return ids, err
+		}
 	}
 	return ids, nil
 }
@@ -157,7 +177,7 @@ func TestTrackingPollingReportsAndRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	sent := sender.snapshot()
-	if len(sent) != 3 || !strings.Contains(sent[1].text, "/matches/100") || !strings.Contains(sent[2].text, "Matches: 2") {
+	if len(sent) != 3 || !strings.Contains(sent[1].text, "/matches/100") || !sent[2].rich || !strings.Contains(sent[2].text, "<b>Матчи:</b> 2") {
 		t.Fatal(sent)
 	}
 	for _, d := range sent {

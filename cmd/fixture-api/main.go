@@ -168,7 +168,13 @@ func (f *fixtureAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				f.mu.Lock()
 			}
 			success(updates)
-		case "sendMessage":
+		case "sendMessage", "sendRichMessage":
+			if method == "sendRichMessage" {
+				// Keep the observations' common text field for smoke assertions.
+				if rich, ok := input["rich_message"].(map[string]any); ok {
+					input["text"] = rich["html"]
+				}
+			}
 			f.messages = append(f.messages, input)
 			success(map[string]any{"message_id": len(f.messages), "date": time.Now().Unix(), "chat": map[string]any{"id": -100123, "type": "supergroup"}, "text": input["text"]})
 		case "getChatAdministrators":

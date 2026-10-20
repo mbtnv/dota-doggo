@@ -14,11 +14,15 @@ import (
 
 // One part per transaction: a later explicit failure cannot roll back an
 // acknowledged part. Network/commit uncertainty can still produce duplicates.
-func (w *Worker) sendPart(ctx context.Context, topic domain.Topic, part string) (int64, error) {
+func (w *Worker) sendPart(ctx context.Context, topic domain.Topic, part string, report bool) (int64, error) {
 	if err := w.check(ctx); err != nil {
 		return 0, err
 	}
-	ids, err := w.Sender.SendParts(ctx, topic, []string{part})
+	send := w.Sender.SendParts
+	if report {
+		send = w.Sender.SendReportParts
+	}
+	ids, err := send(ctx, topic, []string{part})
 	if err != nil {
 		return 0, err
 	}
@@ -101,7 +105,7 @@ func (w *Worker) deliverMatch(ctx context.Context, topicID, matchID int64, loade
 			}
 			index := len(delivery.MessageIDs)
 			if index < len(delivery.Parts) {
-				id, err := w.sendPart(stepCtx, topic, delivery.Parts[index])
+				id, err := w.sendPart(stepCtx, topic, delivery.Parts[index], false)
 				if err != nil {
 					return err
 				}
@@ -172,13 +176,17 @@ func (w *Worker) deliverReport(ctx context.Context, topicID, deliveryID int64, c
 				summaries := domain.TopicSummaries(players, period, d.Start, d.End, matches, period == domain.Day)
 				parts := []string{}
 				if len(summaries) > 0 {
-					header := fmt.Sprintf("<b>%s report</b>\n%s — %s", period, format.Datetime(d.Start, topic.Timezone), format.Datetime(d.End, topic.Timezone))
-					parts, err = format.SplitSections(header, w.Formatter.ReportSections(summaries, constants), format.TelegramTextLimit)
+					if period == domain.Day {
+						parts, err = w.Formatter.DailyReportParts(summaries, constants, topic.Timezone)
+					} else {
+						header := fmt.Sprintf("<b>%s report</b>\n%s — %s", period, format.Datetime(d.Start, topic.Timezone), format.Datetime(d.End, topic.Timezone))
+						parts, err = format.SplitSections(header, w.Formatter.ReportSections(summaries, constants), format.TelegramTextLimit)
+					}
 					if err != nil {
 						return err
 					}
 				}
-				// Commit stable text before the first external send.
+				// Commit stable content and format before the first external send.
 				return tx.PrepareReportDelivery(stepCtx, d.ID, parts)
 			}
 			var messageID *int64
@@ -186,7 +194,7 @@ func (w *Worker) deliverReport(ctx context.Context, topicID, deliveryID int64, c
 				messageID = &d.MessageIDs[n-1]
 			}
 			if len(d.MessageIDs) < len(d.Parts) {
-				id, err := w.sendPart(stepCtx, topic, d.Parts[len(d.MessageIDs)])
+				id, err := w.sendPart(stepCtx, topic, d.Parts[len(d.MessageIDs)], true)
 				if err != nil {
 					return err
 				}
