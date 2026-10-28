@@ -12,11 +12,11 @@ import (
 
 type liveContextSender struct{ jobSender }
 
-func (s *liveContextSender) SendHTML(ctx context.Context, topic domain.Topic, text string) ([]int64, error) {
+func (s *liveContextSender) SendMessageParts(ctx context.Context, topic domain.Topic, parts []string) ([]int64, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	return s.jobSender.SendHTML(ctx, topic, text)
+	return s.jobSender.SendMessageParts(ctx, topic, parts)
 }
 
 func TestReviewTimedOutResyncMustReportResult(t *testing.T) {

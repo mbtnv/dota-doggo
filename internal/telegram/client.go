@@ -287,27 +287,27 @@ func (c *Client) SendHTML(ctx context.Context, topic domain.Topic, text string) 
 	return c.SendParts(ctx, topic, parts)
 }
 
-// SendReportParts accepts versioned rich snapshots and legacy HTML deliveries.
+// SendMessageParts accepts versioned rich snapshots and legacy HTML deliveries.
 // Each successful part is acknowledged independently, just like SendParts.
-func (c *Client) SendReportParts(ctx context.Context, topic domain.Topic, parts []string) ([]int64, error) {
-	decoded := make([]format.ReportPart, len(parts))
+func (c *Client) SendMessageParts(ctx context.Context, topic domain.Topic, parts []string) ([]int64, error) {
+	decoded := make([]format.MessagePart, len(parts))
 	for i, part := range parts {
-		p, err := format.DecodeReportPart(part)
+		p, err := format.DecodeMessagePart(part)
 		if err != nil {
 			return nil, err
 		}
 		if p.HTML == "" {
-			return nil, errors.New("empty report part")
+			return nil, errors.New("empty message part")
 		}
 		// Validate balance without splitting structural rich blocks. Ordinary
 		// messages must additionally fit Telegram's regular text limit.
 		limit := format.TelegramTextLimit
 		if p.Format == format.RichHTMLFormat {
-			limit = len(p.HTML)
+			limit = format.TelegramRichTextLimit
 		}
 		chunks, err := format.SplitHTML(p.HTML, limit)
 		if err != nil || len(chunks) != 1 {
-			return nil, errors.New("invalid report HTML")
+			return nil, errors.New("invalid message HTML")
 		}
 		decoded[i] = p
 	}
@@ -332,7 +332,7 @@ func (c *Client) SendReportParts(ctx context.Context, topic domain.Topic, parts 
 		}{topic.ChatID, topic.ThreadID, struct {
 			HTML                string `json:"html"`
 			SkipEntityDetection bool   `json:"skip_entity_detection"`
-		}{p.HTML, true}}, &message)
+		}{p.HTML, !p.DetectEntities}}, &message)
 		if err != nil {
 			return ids, err
 		}

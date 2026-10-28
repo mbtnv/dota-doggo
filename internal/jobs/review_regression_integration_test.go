@@ -84,6 +84,36 @@ func TestReviewRetryMustIncludePersistedPendingMatch(t *testing.T) {
 	}
 }
 
+func TestPendingLegacyMatchResumesWithoutReformattingOrRepeatingParts(t *testing.T) {
+	ctx, _, repo, api, sender, w := setup(t)
+	topic, playerID := track(t, ctx, repo, -1, 123, "Player", ptr(int64(99)))
+	m, err := match(t, 100).Snapshot(playerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.SaveMatches(ctx, []domain.Match{m}); err != nil {
+		t.Fatal(err)
+	}
+	parts := []string{"<b>Already acknowledged</b>", "<b>Legacy pending match</b>"}
+	if err := repo.CreateMatchDelivery(ctx, topic.ID, 100, []int64{playerID}, parts); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.AdvanceMatchDelivery(ctx, topic.ID, 100, 99); err != nil {
+		t.Fatal(err)
+	}
+	api.matches[123] = []opendota.MatchData{match(t, 100)}
+	if err := w.PollOnce(ctx); err != nil {
+		t.Fatal(err)
+	}
+	sent := sender.snapshot()
+	if len(sent) != 1 || sent[0].rich || sent[0].text != parts[1] || *cursor(t, ctx, repo, topic.ID, playerID) != 100 {
+		t.Fatal(sent)
+	}
+	if err := w.PollOnce(ctx); err != nil || len(sender.snapshot()) != 1 {
+		t.Fatal("legacy match repeated", err)
+	}
+}
+
 func TestReviewReportRetryMustNotDuplicateAcknowledgedParts(t *testing.T) {
 	ctx, _, repo, _, sender, w := setup(t)
 	for account := int64(123); account < 145; account++ {
@@ -153,7 +183,7 @@ func TestReviewReportRetryMustNotDuplicateAcknowledgedParts(t *testing.T) {
 		t.Fatal("missing report parts", sender.snapshot())
 	}
 	for i, sent := range sender.snapshot() {
-		part, err := format.DecodeReportPart(snapshot.Parts[i])
+		part, err := format.DecodeMessagePart(snapshot.Parts[i])
 		if err != nil || !sent.rich || sent.text != part.HTML {
 			t.Fatal("report snapshot changed")
 		}
@@ -282,7 +312,8 @@ func TestMultipartNotificationResumesAfterRestartAndResyncSuppressesIt(t *testin
 				t.Fatal("wrong number of delivered parts", len(sender.snapshot()), want)
 			}
 			for i, sent := range sender.snapshot() {
-				if sent.text != d.Parts[i] {
+				part, err := format.DecodeMessagePart(d.Parts[i])
+				if err != nil || !sent.rich || sent.text != part.HTML {
 					t.Fatal("notification snapshot changed")
 				}
 			}

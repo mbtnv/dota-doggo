@@ -82,7 +82,7 @@ func TestCommandsPersistSettingsReportsAndRouteTopics(t *testing.T) {
 	command("/set_timezone Invalid/Zone", "Неизвестная")
 	command("/set_timezone Europe/Moscow", "Europe/Moscow")
 	command("/pause", "приостановлен")
-	command("/status", "Paused: true")
+	command("/status", "Опрос: приостановлен")
 	command("/resume", "возобновлён")
 	topic, err := repo.Topic(ctx, -100, m.ThreadID)
 	if err != nil {
@@ -101,25 +101,26 @@ func TestCommandsPersistSettingsReportsAndRouteTopics(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	beforeReports := len(tg.parts)
 	command("/report day 123", "<b>Матчи:</b> 1")
-	if len(tg.reports) != 1 || tg.reports[0].Format != format.RichHTMLFormat || !strings.Contains(tg.reports[0].HTML, "mid &lt;carry&gt;") || strings.Contains(tg.reports[0].HTML, "support") {
-		t.Fatal("filtered daily report", tg.reports)
+	if len(tg.parts) != beforeReports+1 || tg.parts[beforeReports].Format != format.RichHTMLFormat || !strings.Contains(tg.parts[beforeReports].HTML, "mid &lt;carry&gt;") || strings.Contains(tg.parts[beforeReports].HTML, "support") {
+		t.Fatal("filtered daily report", tg.parts)
 	}
 	command("/report day", "<b>Матчи:</b> 1")
-	if len(tg.reports) != 2 || tg.reports[1].Format != format.RichHTMLFormat || !strings.Contains(tg.reports[1].HTML, "<table") || !strings.Contains(tg.reports[1].HTML, "08.10.2026") || !strings.Contains(tg.reports[1].HTML, "Europe/Moscow") {
-		t.Fatal("daily rich report", tg.reports)
+	if len(tg.parts) != beforeReports+2 || tg.parts[beforeReports+1].Format != format.RichHTMLFormat || !strings.Contains(tg.parts[beforeReports+1].HTML, "<table") || !strings.Contains(tg.parts[beforeReports+1].HTML, "08.10.2026") || !strings.Contains(tg.parts[beforeReports+1].HTML, "Europe/Moscow") {
+		t.Fatal("daily rich report", tg.parts)
 	}
 	if strings.Contains(tg.messages[len(tg.messages)-1], "empty") {
 		t.Fatal("day report included an empty player")
 	}
 	command("/report week", "mid &lt;carry&gt;")
 	command("/report month", "support")
-	if tg.reports[2].Format != "" || tg.reports[3].Format != "" {
-		t.Fatal("week/month unexpectedly use rich messages")
+	if tg.parts[beforeReports+2].Format != format.RichHTMLFormat || tg.parts[beforeReports+3].Format != format.RichHTMLFormat || !strings.Contains(tg.parts[beforeReports+2].HTML, "Недельный отчёт") || !strings.Contains(tg.parts[beforeReports+3].HTML, "Месячный отчёт") {
+		t.Fatal("week/month rich report missing")
 	}
 	command("/report year", "day, week или month")
 	command("/report day missing", "не найден")
-	command("/leaders day", "WR 100.00%")
+	command("/leaders day", "<td>100.00%</td>")
 	command("/last 1 123", "support") // selected player's shared match includes both participants
 	command("/last 11", "Использование")
 	command("/resync 30 mid <carry>", "поставлено в очередь")
@@ -131,6 +132,11 @@ func TestCommandsPersistSettingsReportsAndRouteTopics(t *testing.T) {
 	reports, err := repo.LatestReports(ctx, topic.ID)
 	if err != nil || len(reports) != 3 {
 		t.Fatal(reports, err)
+	}
+	for _, part := range tg.parts {
+		if part.Format != format.RichHTMLFormat {
+			t.Fatal("command sent legacy text", part)
+		}
 	}
 	for _, dest := range tg.destinations {
 		if dest.ChatID != -100 || dest.ThreadID == nil || *dest.ThreadID != 42 {
@@ -217,16 +223,19 @@ func TestHTTPPollingTracksFixtureAndRepliesToItsTopic(t *testing.T) {
 				cancel()
 				fmt.Fprint(w, `{"ok":true,"result":[]}`)
 			}
-		case "/bot123:test/sendMessage":
+		case "/bot123:test/sendRichMessage":
 			var p struct {
 				ChatID   int64  `json:"chat_id"`
 				ThreadID *int64 `json:"message_thread_id"`
 				Text     string `json:"text"`
+				Rich     struct {
+					HTML string `json:"html"`
+				} `json:"rich_message"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 				t.Error(err)
 			}
-			destination <- telegram.Message{Chat: telegram.Chat{ID: p.ChatID}, ThreadID: p.ThreadID, Text: p.Text}
+			destination <- telegram.Message{Chat: telegram.Chat{ID: p.ChatID}, ThreadID: p.ThreadID, Text: p.Rich.HTML}
 			fmt.Fprint(w, `{"ok":true,"result":{"message_id":123}}`)
 		default:
 			t.Errorf("unexpected HTTP request %s", r.URL.Path)
@@ -308,7 +317,7 @@ func TestLastCommandSplitsLongHTMLWithoutDroppingSharedPlayers(t *testing.T) {
 		}
 	}
 	joined := strings.Join(tg.messages, "")
-	if !strings.Contains(joined, "/players/123") || !strings.Contains(joined, "/players/456") || strings.Count(joined, "/matches/1000") != 1 {
+	if !strings.Contains(joined, "/players/123") || !strings.Contains(joined, "/players/456") || strings.Count(joined, "/matches/1000") != len(tg.messages) {
 		t.Fatal("shared participants or match link lost")
 	}
 }

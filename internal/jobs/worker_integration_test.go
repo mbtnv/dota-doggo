@@ -83,10 +83,10 @@ func (s *fakeSender) SendParts(ctx context.Context, topic domain.Topic, parts []
 	}
 	return ids, nil
 }
-func (s *fakeSender) SendReportParts(ctx context.Context, topic domain.Topic, parts []string) ([]int64, error) {
+func (s *fakeSender) SendMessageParts(ctx context.Context, topic domain.Topic, parts []string) ([]int64, error) {
 	var ids []int64
 	for _, part := range parts {
-		p, err := format.DecodeReportPart(part)
+		p, err := format.DecodeMessagePart(part)
 		if err != nil {
 			return ids, err
 		}
@@ -215,7 +215,7 @@ func TestIndependentTopicCursorsAndSharedGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	sent := sender.snapshot()
-	if len(sent) != 2 || !strings.Contains(sent[0].text, "carry, support") || !strings.Contains(sent[1].text, "other alias") {
+	if len(sent) != 2 || !sent[0].rich || !sent[1].rich || !strings.Contains(sent[0].text, ">carry</a>") || !strings.Contains(sent[0].text, ">support</a>") || !strings.Contains(sent[1].text, "other alias") {
 		t.Fatal(sent)
 	}
 	for _, pair := range [][2]int64{{a.ID, p}, {a.ID, q}, {b.ID, p}} {

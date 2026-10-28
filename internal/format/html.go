@@ -103,6 +103,11 @@ func HTMLLength(text string) (int, error) {
 }
 
 func SplitHTML(text string, limit int) ([]string, error) {
+	return splitHTML(text, limit, 0)
+}
+
+// maxLines bounds paragraph counts when inline HTML is promoted to rich text.
+func splitHTML(text string, limit, maxLines int) ([]string, error) {
 	if limit < 1 {
 		return nil, errors.New("text limit must be positive")
 	}
@@ -114,6 +119,7 @@ func SplitHTML(text string, limit int) ([]string, error) {
 	var stack []token
 	var b strings.Builder
 	length := 0
+	lines := 0
 	flush := func() {
 		if length == 0 {
 			return
@@ -124,6 +130,7 @@ func SplitHTML(text string, limit int) ([]string, error) {
 		chunks = append(chunks, b.String())
 		b.Reset()
 		length = 0
+		lines = 0
 		for _, t := range stack {
 			b.WriteString(t.raw)
 		}
@@ -144,11 +151,14 @@ func SplitHTML(text string, limit int) ([]string, error) {
 		if t.units > limit {
 			return nil, errors.New("text limit cannot fit a Unicode character")
 		}
-		if length+t.units > limit {
+		if length+t.units > limit || (maxLines > 0 && t.raw == "\n" && lines >= maxLines) {
 			flush()
 		}
 		b.WriteString(t.raw)
 		length += t.units
+		if t.raw == "\n" {
+			lines++
+		}
 	}
 	if len(stack) > 0 {
 		return nil, errors.New("unclosed HTML tag")

@@ -11,10 +11,11 @@ import (
 	"time"
 
 	"dota-doggo/internal/domain"
+	"dota-doggo/internal/format"
 )
 
 type JobSender interface {
-	SendHTML(context.Context, domain.Topic, string) ([]int64, error)
+	SendMessageParts(context.Context, domain.Topic, []string) ([]int64, error)
 }
 type historyJob struct {
 	topic   domain.Topic
@@ -88,7 +89,7 @@ func (j *Jobs) run(parent context.Context, job historyJob) {
 			}
 			break
 		}
-		_, err := j.Sender.SendHTML(ctx, job.topic, "Обновляю историю: <b>"+html.EscapeString(player.Label())+"</b>")
+		err := j.send(ctx, job.topic, "⏳ Обновление истории", "Обновляю историю: <b>"+html.EscapeString(player.Label())+"</b>")
 		if err != nil && j.Log != nil {
 			j.Log.Warn("resync progress send failed", "topic_id", job.topic.ID, "error", err)
 		}
@@ -122,8 +123,17 @@ func (j *Jobs) run(parent context.Context, job historyJob) {
 	}
 	finishCtx, finishCancel := context.WithTimeout(parent, 30*time.Second)
 	defer finishCancel()
-	_, err := j.Sender.SendHTML(finishCtx, job.topic, text)
+	err := j.send(finishCtx, job.topic, "🔄 Результат обновления истории", text)
 	if err != nil && j.Log != nil {
 		j.Log.Error("resync result send failed", "topic_id", job.topic.ID, "error", err)
 	}
+}
+
+func (j *Jobs) send(ctx context.Context, topic domain.Topic, title, text string) error {
+	parts, err := format.TextParts(title, text)
+	if err != nil {
+		return err
+	}
+	_, err = j.Sender.SendMessageParts(ctx, topic, parts)
+	return err
 }

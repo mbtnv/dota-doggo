@@ -16,7 +16,7 @@ func TestDailyReportPreservesMetricsAndEscapesPlayerContent(t *testing.T) {
 	if err != nil || len(parts) != 1 {
 		t.Fatal(parts, err)
 	}
-	p, err := DecodeReportPart(parts[0])
+	p, err := DecodeMessagePart(parts[0])
 	if err != nil || p.Format != RichHTMLFormat {
 		t.Fatal(p, err)
 	}
@@ -42,7 +42,7 @@ func TestDailyReportSplitsWithoutBreakingTablesOrLosingPlayers(t *testing.T) {
 	}
 	var all strings.Builder
 	for _, part := range parts {
-		p, err := DecodeReportPart(part)
+		p, err := DecodeMessagePart(part)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -61,12 +61,12 @@ func TestDailyReportSplitsWithoutBreakingTablesOrLosingPlayers(t *testing.T) {
 
 func TestReportSnapshotCompatibilityAndEmptyDay(t *testing.T) {
 	legacy := "<b>day report</b>\nold pending delivery"
-	p, err := DecodeReportPart(legacy)
+	p, err := DecodeMessagePart(legacy)
 	if err != nil || p.Format != "" || p.HTML != legacy {
 		t.Fatal(p, err)
 	}
 	for _, invalid := range []string{`{broken`, `{"format":"future-version","html":"<h2>Report</h2>"}`, `{"format":"telegram-rich-html-v1"}`} {
-		if _, err := DecodeReportPart(invalid); err == nil {
+		if _, err := DecodeMessagePart(invalid); err == nil {
 			t.Fatal("invalid snapshot accepted", invalid)
 		}
 	}

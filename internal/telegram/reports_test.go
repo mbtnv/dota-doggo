@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 
 func richSnapshot(t *testing.T, html string) string {
 	t.Helper()
-	b, err := json.Marshal(format.ReportPart{Format: format.RichHTMLFormat, HTML: html})
+	b, err := json.Marshal(format.MessagePart{Format: format.RichHTMLFormat, HTML: html})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +58,7 @@ func TestRichReportsUseTelegramRichPayloadAndRetryOnlyFailedPart(t *testing.T) {
 	}})
 	thread := int64(42)
 	one, two := "<h2>Report</h2><table><tr><th>Игрок</th></tr><tr><td>🐕</td></tr></table>", "<details><summary>Второй</summary><p>2–1</p></details>"
-	ids, err := c.SendReportParts(context.Background(), domain.Topic{ChatID: -100, ThreadID: &thread}, []string{richSnapshot(t, one), richSnapshot(t, two)})
+	ids, err := c.SendMessageParts(context.Background(), domain.Topic{ChatID: -100, ThreadID: &thread}, []string{richSnapshot(t, one), richSnapshot(t, two)})
 	if err != nil || !reflect.DeepEqual(ids, []int64{1, 3}) || !reflect.DeepEqual(contents, []string{one, two, two}) || !reflect.DeepEqual(waits, []time.Duration{3 * time.Second}) {
 		t.Fatal(ids, contents, waits, err)
 	}
@@ -74,13 +75,41 @@ func TestReportBatchValidationMakesNoPartialSends(t *testing.T) {
 		calls++
 		reply(w, Message{ID: 1})
 	}, Options{})
-	for _, bad := range []string{`{"format":"unknown","html":"x"}`, richSnapshot(t, "<table><tr><td>broken</table>"), "<b>unclosed", ""} {
-		if _, err := c.SendReportParts(context.Background(), domain.Topic{}, []string{richSnapshot(t, "<h2>Valid</h2>"), bad}); err == nil {
+	for _, bad := range []string{`{"format":"unknown","html":"x"}`, richSnapshot(t, "<table><tr><td>broken</table>"), richSnapshot(t, "<p>"+strings.Repeat("x", format.TelegramRichTextLimit+1)+"</p>"), "<b>unclosed", ""} {
+		if _, err := c.SendMessageParts(context.Background(), domain.Topic{}, []string{richSnapshot(t, "<h2>Valid</h2>"), bad}); err == nil {
 			t.Fatal("bad batch accepted", bad)
 		}
 	}
 	if calls != 0 {
 		t.Fatal("invalid batch made requests", calls)
+	}
+}
+
+func TestRichCommandHintsKeepAutomaticCommandDetection(t *testing.T) {
+	c := client(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/bot123:test-secret/sendRichMessage" {
+			t.Error(r.URL.Path)
+		}
+		var p struct {
+			Rich struct {
+				Skip bool   `json:"skip_entity_detection"`
+				HTML string `json:"html"`
+			} `json:"rich_message"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+			t.Error(err)
+		}
+		if p.Rich.Skip || !strings.Contains(p.Rich.HTML, "/resync") {
+			t.Errorf("command detection disabled: %+v", p)
+		}
+		reply(w, Message{ID: 1})
+	}, Options{})
+	parts, err := format.TextParts("Справка", "Историю можно загрузить через /resync.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.SendMessageParts(context.Background(), domain.Topic{ChatID: -100}, parts); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -95,7 +124,7 @@ func TestReportSnapshotsKeepLegacyTransportAndReturnPartialProgress(t *testing.T
 		}
 		reply(w, Message{ID: 10})
 	}, Options{})
-	ids, err := c.SendReportParts(context.Background(), domain.Topic{}, []string{"<b>Legacy daily report</b>", richSnapshot(t, "<h2>New report</h2>"), "never sent"})
+	ids, err := c.SendMessageParts(context.Background(), domain.Topic{}, []string{"<b>Legacy daily report</b>", richSnapshot(t, "<h2>New report</h2>"), "never sent"})
 	if err == nil || !reflect.DeepEqual(ids, []int64{10}) || !reflect.DeepEqual(methods, []string{"/bot123:test-secret/sendMessage", "/bot123:test-secret/sendRichMessage"}) {
 		t.Fatal(ids, methods, err)
 	}

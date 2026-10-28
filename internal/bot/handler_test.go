@@ -50,7 +50,7 @@ type fakeTelegram struct {
 	admin        bool
 	adminErr     error
 	checks       int
-	reports      []format.ReportPart
+	parts        []format.MessagePart
 }
 
 func (f *fakeTelegram) SendHTML(ctx context.Context, topic domain.Topic, text string) ([]int64, error) {
@@ -69,14 +69,14 @@ func (f *fakeTelegram) SendParts(ctx context.Context, topic domain.Topic, parts 
 	}
 	return ids, nil
 }
-func (f *fakeTelegram) SendReportParts(ctx context.Context, topic domain.Topic, parts []string) ([]int64, error) {
+func (f *fakeTelegram) SendMessageParts(ctx context.Context, topic domain.Topic, parts []string) ([]int64, error) {
 	var ids []int64
 	for _, part := range parts {
-		p, err := format.DecodeReportPart(part)
+		p, err := format.DecodeMessagePart(part)
 		if err != nil {
 			return ids, err
 		}
-		f.reports = append(f.reports, p)
+		f.parts = append(f.parts, p)
 		v, err := f.SendHTML(ctx, topic, p.HTML)
 		ids = append(ids, v...)
 		if err != nil {

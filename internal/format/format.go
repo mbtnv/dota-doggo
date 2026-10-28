@@ -50,12 +50,6 @@ func Mode(code int, c domain.Constants) string {
 	return name(code, c.GameModes, modeNames, "%d")
 }
 func Lobby(code int, c domain.Constants) string { return name(code, c.LobbyTypes, lobbyNames, "%d") }
-func outcome(m domain.Match) string {
-	if m.IsWin() {
-		return "🟢<b>Win</b>"
-	}
-	return "🔴<b>Lose</b>"
-}
 func party(m domain.Match) string {
 	if m.PartySize == nil {
 		return ""
@@ -81,67 +75,6 @@ func (f Formatter) kda(m domain.Match) string {
 		parts = append(parts, "<b>"+escape(s.Label)+"</b>: "+escape(s.Value))
 	}
 	return strings.Join(parts, " | ")
-}
-func (f Formatter) Notification(group []Participant, c domain.Constants, zone string) string {
-	if len(group) == 0 {
-		return ""
-	}
-	if len(group) > 1 {
-		return f.RecentMatch(group, c, zone)
-	}
-	p, m := group[0].Player, group[0].Match
-	return strings.Join([]string{
-		fmt.Sprintf("<b>%s</b> · <a href=\"%s\">profile</a>", escape(p.Label()), escape(ProfileURL(p))),
-		outcome(m) + " · " + escape(Hero(m.HeroID, c)), f.kda(m),
-		fmt.Sprintf("<b>Ended</b>: %s (%d min)", Datetime(m.EndTime, zone), int(m.Duration().Minutes())),
-		fmt.Sprintf("<b>GPM/XPM</b>: %d / %d", m.GPM, m.XPM), damage(m), fmt.Sprintf("<b>Last hits</b>: %d", m.LastHits),
-		"<b>Mode</b>: " + escape(Mode(m.GameMode, c)) + " · " + escape(Lobby(m.LobbyType, c)) + party(m),
-		"<a href=\"" + matchURL(m.ID) + "\">Dotabuff</a>"}, "\n")
-}
-func (f Formatter) RecentMatch(group []Participant, c domain.Constants, zone string) string {
-	if len(group) == 0 {
-		return ""
-	}
-	m := group[0].Match
-	labels := make([]string, len(group))
-	for i, p := range group {
-		labels[i] = escape(p.Player.Label())
-	}
-	parts := []string{"<b>" + strings.Join(labels, ", ") + "</b>", fmt.Sprintf("<b>Ended</b>: %s (%d min)", Datetime(m.EndTime, zone), int(m.Duration().Minutes())), "<b>Mode</b>: " + escape(Mode(m.GameMode, c)) + " · " + escape(Lobby(m.LobbyType, c))}
-	for _, p := range group {
-		m := p.Match
-		parts = append(parts, fmt.Sprintf("<b>%s</b> · <a href=\"%s\">profile</a> · %s · %s%s", escape(p.Player.Label()), escape(ProfileURL(p.Player)), outcome(m), escape(Hero(m.HeroID, c)), party(m)),
-			fmt.Sprintf("%s | <b>GPM/XPM</b>: %d / %d | <b>Last hits</b>: %d", f.kda(m), m.GPM, m.XPM, m.LastHits), damage(m))
-	}
-	return strings.Join(append(parts, "<a href=\""+matchURL(m.ID)+"\">Dotabuff</a>"), "\n")
-}
-func (f Formatter) Report(s domain.Summary, c domain.Constants) string {
-	var heroes []string
-	for _, h := range s.TopHeroes {
-		heroes = append(heroes, fmt.Sprintf("%s x%d", Hero(h[0], c), h[1]))
-	}
-	top := strings.Join(heroes, ", ")
-	if top == "" {
-		top = "n/a"
-	}
-	return fmt.Sprintf("<b>%s</b> · %s\nMatches: %d | W/L: %d/%d | WR: %.2f%%\nK/D/A avg: %.2f/%.2f/%.2f\nGPM/XPM avg: %.2f/%.2f\nAvg duration: %.2f min\nAvg hero damage: %.2f\nBest/Worst streak: %d/%d\nTop heroes: %s", escape(s.Label), escape(string(s.Period)), s.Matches, s.Wins, s.Losses, s.Winrate, s.AvgKills, s.AvgDeaths, s.AvgAssists, s.AvgGPM, s.AvgXPM, s.AvgDuration, s.AvgHeroDamage, s.BestStreak, s.WorstStreak, escape(top))
-}
-func (f Formatter) ReportSections(summaries []domain.Summary, c domain.Constants) []string {
-	out := make([]string, 0, len(summaries))
-	for _, s := range summaries {
-		out = append(out, f.Report(s, c))
-	}
-	return out
-}
-func (f Formatter) Leaderboard(title string, summaries []domain.Summary) string {
-	lines := []string{"<b>" + escape(title) + "</b>"}
-	if len(summaries) == 0 {
-		return lines[0] + "\nNo data."
-	}
-	for i, s := range summaries {
-		lines = append(lines, fmt.Sprintf("%d. %s | matches %d | W %d | WR %.2f%%", i+1, escape(s.Label), s.Matches, s.Wins, s.Winrate))
-	}
-	return strings.Join(lines, "\n")
 }
 
 // GroupMatches orders games newest first and participants in the caller's player

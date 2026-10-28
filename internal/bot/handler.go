@@ -31,9 +31,7 @@ type Repository interface {
 	Constants(context.Context) (domain.Constants, error)
 }
 type Telegram interface {
-	SendHTML(context.Context, domain.Topic, string) ([]int64, error)
-	SendParts(context.Context, domain.Topic, []string) ([]int64, error)
-	SendReportParts(context.Context, domain.Topic, []string) ([]int64, error)
+	SendMessageParts(context.Context, domain.Topic, []string) ([]int64, error)
 	IsAdmin(context.Context, int64, int64) (bool, error)
 }
 type OpenDota interface {
@@ -89,7 +87,7 @@ func (h *Handler) Handle(ctx context.Context, m telegram.Message) error {
 		return nil
 	}
 	destination := domain.Topic{ChatID: m.Chat.ID, ThreadID: m.ThreadID}
-	reply := func(text string) error { _, err := h.Telegram.SendHTML(ctx, destination, text); return err }
+	reply := func(text string) error { return h.reply(ctx, destination, command, text) }
 	if command == "help" {
 		return reply(help)
 	}
@@ -130,7 +128,7 @@ func (h *Handler) Handle(ctx context.Context, m telegram.Message) error {
 	return err
 }
 func (h *Handler) execute(ctx context.Context, t domain.Topic, m telegram.Message, command, args string) error {
-	reply := func(text string) error { _, err := h.Telegram.SendHTML(ctx, t, text); return err }
+	reply := func(text string) error { return h.reply(ctx, t, command, text) }
 	switch command {
 	case "track":
 		input, alias := first(args)
@@ -190,11 +188,12 @@ func (h *Handler) execute(ctx context.Context, t domain.Topic, m telegram.Messag
 		if len(players) == 0 {
 			return reply("В этом topic пока нет игроков. Добавление: /track &lt;account ID&gt; [alias]")
 		}
-		lines := []string{"<b>Игроки topic</b>"}
-		for _, p := range players {
-			lines = append(lines, fmt.Sprintf("• <b>%s</b> · %d", html.EscapeString(p.Label()), p.AccountID))
+		parts, err := format.PlayerParts(players)
+		if err != nil {
+			return err
 		}
-		return reply(strings.Join(lines, "\n"))
+		_, err = h.Telegram.SendMessageParts(ctx, t, parts)
+		return err
 	case "untrack":
 		if args == "" {
 			return reply("Использование: /untrack &lt;account ID или alias&gt;")
@@ -260,15 +259,15 @@ func (h *Handler) execute(ctx context.Context, t domain.Topic, m telegram.Messag
 				ordered = append(ordered, p)
 			}
 		}
-		var sections []string
+		var parts []string
 		for _, group := range format.GroupMatches(ordered, matches) {
-			sections = append(sections, h.Formatter.RecentMatch(group, constants, t.Timezone))
+			messages, err := h.Formatter.MatchParts(group, constants, t.Timezone)
+			if err != nil {
+				return err
+			}
+			parts = append(parts, messages...)
 		}
-		parts, err := format.SplitSections("<b>Последние матчи</b>", sections, format.TelegramTextLimit)
-		if err != nil {
-			return err
-		}
-		_, err = h.Telegram.SendParts(ctx, t, parts)
+		_, err = h.Telegram.SendMessageParts(ctx, t, parts)
 		return err
 	case "report", "leaders":
 		periodText, filter := first(args)
@@ -297,22 +296,22 @@ func (h *Handler) execute(ctx context.Context, t domain.Topic, m telegram.Messag
 			return reply("Для выбранного периода данных нет.")
 		}
 		if command == "leaders" {
-			return reply(h.Formatter.Leaderboard("Лидеры · "+periodText, domain.Leaders(summaries, 10)))
+			parts, err := format.LeaderParts(domain.Leaders(summaries, 10), period, t.Timezone)
+			if err != nil {
+				return err
+			}
+			_, err = h.Telegram.SendMessageParts(ctx, t, parts)
+			return err
 		}
 		constants, err := h.Repo.Constants(ctx)
 		if err != nil {
 			return err
 		}
-		var parts []string
-		if period == domain.Day {
-			parts, err = h.Formatter.DailyReportParts(summaries, constants, t.Timezone)
-		} else {
-			parts, err = format.SplitSections("<b>Отчёт · "+periodText+"</b>", h.Formatter.ReportSections(summaries, constants), format.TelegramTextLimit)
-		}
+		parts, err := h.Formatter.ReportParts(summaries, period, constants, t.Timezone)
 		if err != nil {
 			return err
 		}
-		messages, err := h.Telegram.SendReportParts(ctx, t, parts)
+		messages, err := h.Telegram.SendMessageParts(ctx, t, parts)
 		if err != nil {
 			return err
 		}
@@ -343,7 +342,7 @@ func (h *Handler) limits(ctx context.Context, t domain.Topic) error {
 	limits, err := h.API.RateLimits(apiCtx, true)
 	cancel()
 	if err != nil {
-		_, _ = h.Telegram.SendHTML(ctx, t, "Не удалось обновить лимиты OpenDota. Попробуйте позже.")
+		_ = h.reply(ctx, t, "limits", "Не удалось обновить лимиты OpenDota. Попробуйте позже.")
 		return err
 	}
 	text := "OpenDota не передал заголовки лимитов."
@@ -359,8 +358,7 @@ func (h *Handler) limits(ctx context.Context, t domain.Topic) error {
 			text += "\nВремя сервера: " + format.Datetime(*limits.ServerTime, "UTC")
 		}
 	}
-	_, err = h.Telegram.SendHTML(ctx, t, text)
-	return err
+	return h.reply(ctx, t, "limits", text)
 }
 func (h *Handler) status(ctx context.Context, t domain.Topic, players []domain.Player) error {
 	overview, err := h.Repo.Overview(ctx, ids(players))
@@ -380,7 +378,11 @@ func (h *Handler) status(ctx context.Context, t domain.Topic, players []domain.P
 	if t.ThreadID != nil {
 		thread = strconv.FormatInt(*t.ThreadID, 10)
 	}
-	lines := []string{fmt.Sprintf("<b>Topic status</b>\nChat: %d · Thread: %s\nTimezone: %s · Paused: %t\nИгроков: %d · Записей: %d · Уникальных матчей: %d", t.ChatID, thread, html.EscapeString(t.Timezone), t.Paused, len(players), overview.TotalRows, overview.UniqueMatches)}
+	pollState := "включён"
+	if t.Paused {
+		pollState = "приостановлен"
+	}
+	lines := []string{fmt.Sprintf("Чат: %d · Тема: %s\nЧасовой пояс: %s · Опрос: %s\nИгроков: %d · Записей: %d · Уникальных матчей: %d", t.ChatID, thread, html.EscapeString(t.Timezone), pollState, len(players), overview.TotalRows, overview.UniqueMatches)}
 	stamp := func(at *time.Time) string {
 		if at == nil {
 			return "ещё не было"
@@ -418,12 +420,18 @@ func (h *Handler) status(ctx context.Context, t domain.Topic, players []domain.P
 	if runtime.Error != nil {
 		lines = append(lines, "Ошибка: "+html.EscapeString(*runtime.Error))
 	}
+	if len(players) > 0 {
+		lines = append(lines, "<b>История игроков</b>")
+	}
 	for _, p := range players {
 		cursor := "не инициализирован"
 		if p.LastSeenMatchID != nil {
 			cursor = strconv.FormatInt(*p.LastSeenMatchID, 10)
 		}
 		lines = append(lines, fmt.Sprintf("%s (%d): cursor %s", html.EscapeString(p.Label()), p.AccountID, cursor))
+	}
+	if len(reports) > 0 {
+		lines = append(lines, "<b>Последние отчёты</b>")
 	}
 	for _, r := range reports {
 		lines = append(lines, fmt.Sprintf("Отчёт %s (%s): %s · %s — %s", html.EscapeString(r.Period), html.EscapeString(r.Trigger), format.Datetime(r.CreatedAt, t.Timezone), format.Datetime(r.Start, t.Timezone), format.Datetime(r.End, t.Timezone)))
@@ -439,6 +447,15 @@ func (h *Handler) status(ctx context.Context, t domain.Topic, players []domain.P
 		}
 		lines = append(lines, fmt.Sprintf("Период автоотчёта %s: %s — %s", period, format.Datetime(start, t.Timezone), format.Datetime(end, t.Timezone)))
 	}
-	_, err = h.Telegram.SendHTML(ctx, t, strings.Join(lines, "\n"))
+	return h.reply(ctx, t, "status", strings.Join(lines, "\n"))
+}
+
+func (h *Handler) reply(ctx context.Context, topic domain.Topic, command, text string) error {
+	titles := map[string]string{"help": "🐾 Справка", "limits": "📡 Лимиты OpenDota", "players": "👥 Игроки", "status": "⚙️ Состояние бота", "track": "👤 Отслеживание игрока", "untrack": "👤 Отслеживание игрока", "report": "📊 Отчёт", "leaders": "🏆 Лидеры", "last": "🎮 Последние матчи", "resync": "🔄 Обновление истории", "pause": "⏸ Управление опросом", "resume": "▶️ Управление опросом", "set_timezone": "🕒 Часовой пояс"}
+	parts, err := format.TextParts(titles[command], text)
+	if err != nil {
+		return err
+	}
+	_, err = h.Telegram.SendMessageParts(ctx, topic, parts)
 	return err
 }

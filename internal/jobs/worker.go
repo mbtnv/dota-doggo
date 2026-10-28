@@ -22,9 +22,7 @@ type RecentAPI interface {
 	RecentMatches(context.Context, int64) ([]opendota.MatchData, error)
 }
 type Sender interface {
-	SendHTML(context.Context, domain.Topic, string) ([]int64, error)
-	SendParts(context.Context, domain.Topic, []string) ([]int64, error)
-	SendReportParts(context.Context, domain.Topic, []string) ([]int64, error)
+	SendMessageParts(context.Context, domain.Topic, []string) ([]int64, error)
 }
 type Worker struct {
 	Pool      *pgxpool.Pool

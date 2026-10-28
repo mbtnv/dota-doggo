@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"dota-doggo/internal/domain"
+	"dota-doggo/internal/format"
 	"dota-doggo/internal/opendota"
 )
 
@@ -16,10 +17,21 @@ type jobSender struct {
 	topics []domain.Topic
 }
 
-func (s *jobSender) SendHTML(_ context.Context, t domain.Topic, text string) ([]int64, error) {
-	s.texts = append(s.texts, text)
-	s.topics = append(s.topics, t)
-	return []int64{1}, nil
+func (s *jobSender) SendMessageParts(_ context.Context, t domain.Topic, parts []string) ([]int64, error) {
+	var ids []int64
+	for _, part := range parts {
+		p, err := format.DecodeMessagePart(part)
+		if err != nil {
+			return ids, err
+		}
+		if p.Format != format.RichHTMLFormat {
+			return ids, errors.New("expected rich message")
+		}
+		s.texts = append(s.texts, p.HTML)
+		s.topics = append(s.topics, t)
+		ids = append(ids, int64(len(s.texts)))
+	}
+	return ids, nil
 }
 func TestResyncProgressAndPartialFailureSummary(t *testing.T) {
 	api := &historyAPI{pageErr: map[int]error{0: errors.New("private error details")}}

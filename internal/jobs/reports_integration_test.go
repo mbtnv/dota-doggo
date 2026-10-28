@@ -73,7 +73,7 @@ func TestEmptyDayIsSealedSilentlyAndWeekMonthRemainAvailable(t *testing.T) {
 		}
 	}
 	sent := sender.snapshot()
-	if len(sent) != 2 || !strings.Contains(sent[0].text, "week report") || !strings.Contains(sent[1].text, "month report") {
+	if len(sent) != 2 || !sent[0].rich || !sent[1].rich || !strings.Contains(sent[0].text, "Недельный отчёт") || !strings.Contains(sent[1].text, "Месячный отчёт") {
 		t.Fatal(sent)
 	}
 	runs, err := repo.LatestReports(ctx, topic.ID)

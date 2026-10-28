@@ -139,6 +139,8 @@ def main():
 
         observed = http("/observations")
         assert all(str(m["chat_id"]) == "-100123" for m in observed["messages"])
+        assert all("rich_message" in m for m in observed["messages"]), "a new message used legacy transport"
+        results["checks"].append("all new messages use sendRichMessage")
         # Only the notification and report include a match URL after resync.
         assert sql("SELECT count(*) FROM player_matches") == "2"
         assert sql("SELECT last_seen_match_id FROM topic_players") == "1000"
