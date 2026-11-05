@@ -9,6 +9,60 @@ import (
 	"dota-doggo/internal/domain"
 )
 
+func TestMatchCardsShowThePartyAndItsResultBeforeTheDetails(t *testing.T) {
+	end := time.Date(2026, 11, 5, 8, 51, 0, 0, time.UTC)
+	constants := domain.Constants{Heroes: map[int]string{32: "Riki", 25: "Lina", 2: "Axe"}}
+	for _, tc := range []struct {
+		name  string
+		slots []int
+		title string
+	}{
+		{"solo", []int{128}, "🔴 Sega проиграл на Riki"},
+		{"duo", []int{128, 129}, "🔴 Sega и Fox проиграли"},
+		{"trio", []int{0, 1, 2}, "🟢 Sega, Fox и Max выиграли"},
+		{"opponents", []int{128, 0, 129}, "🔴 Sega и Max проиграли<br>🟢 Fox выиграл"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var group []Participant
+			for i, slot := range tc.slots {
+				group = append(group, Participant{
+					Player: domain.Player{DisplayName: []string{"Sega", "Fox", "Max"}[i], AccountID: int64(50 + i)},
+					Match: domain.Match{ID: 9076922941, PlayerSlot: slot, RadiantWin: true,
+						StartTime: end.Add(-21 * time.Minute), EndTime: end, GameMode: 23,
+						HeroID: []int{32, 25, 2}[i], Kills: 2 + i, Deaths: 9, Assists: 10, HeroDamage: 10900},
+				})
+			}
+			parts, err := (Formatter{}).MatchParts(group, constants, "Europe/Moscow")
+			if err != nil || len(parts) != 1 {
+				t.Fatalf("expected one card, got %d, err %v", len(parts), err)
+			}
+			card := decodedText(t, parts)
+			if !strings.HasPrefix(card, "<p><b>"+tc.title+"</b></p>") ||
+				strings.Count(card, "Turbo · 21 мин · конец в 11:51 MSK") != 1 ||
+				strings.Count(card, "9076922941") != 1 || !strings.Contains(card, `href="https://www.dotabuff.com/matches/9076922941"`) ||
+				strings.Contains(card, "<table") || strings.Contains(card, "<h2>") {
+				t.Fatal(card)
+			}
+			blocks := strings.Split(card, "<details><summary>")
+			if len(blocks) != len(group)+1 {
+				t.Fatalf("one disclosure per participant: %s", card)
+			}
+			for i, p := range group {
+				summary, details, ok := strings.Cut(blocks[i+1], "</summary>")
+				visible := summary
+				if len(group) == 1 {
+					visible = blocks[0]
+				}
+				if !ok || !strings.Contains(visible, p.Player.Label()) || !strings.Contains(visible, Hero(p.Match.HeroID, constants)) ||
+					!strings.Contains(visible, fmt.Sprintf("%d/9/10</b> K/D/A", p.Match.Kills)) || !strings.Contains(visible, "Govnoedstvo") ||
+					!strings.Contains(details, "Урон героям · 10900") || !strings.Contains(details, ProfileURL(p.Player)) {
+					t.Fatal(card)
+				}
+			}
+		})
+	}
+}
+
 func TestTextCardsPreserveMultilineNamesFormattingAndCommandDetection(t *testing.T) {
 	parts, err := TextParts("🕒 Настройки <&>", "Игрок: <b>First\nSecond &amp; 🐕</b>\nИспользование: /track 123")
 	if err != nil || len(parts) != 1 {

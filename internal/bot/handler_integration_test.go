@@ -121,7 +121,7 @@ func TestCommandsPersistSettingsReportsAndRouteTopics(t *testing.T) {
 	command("/report year", "day, week или month")
 	command("/report day missing", "не найден")
 	command("/leaders day", "<td>100.00%</td>")
-	command("/last 1 123", "support") // selected player's shared match includes both participants
+	command("/last 1 456", "🟢 support и mid &lt;carry&gt; выиграли") // the filtered player leads the shared card
 	command("/last 11", "Использование")
 	command("/resync 30 mid <carry>", "поставлено в очередь")
 	if jobs.calls != 1 || jobs.days != 30 || len(jobs.players) != 1 || jobs.players[0].AccountID != 123 || jobs.topic.ID != topic.ID {

@@ -215,7 +215,7 @@ func TestIndependentTopicCursorsAndSharedGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	sent := sender.snapshot()
-	if len(sent) != 2 || !sent[0].rich || !sent[1].rich || !strings.Contains(sent[0].text, ">carry</a>") || !strings.Contains(sent[0].text, ">support</a>") || !strings.Contains(sent[1].text, "other alias") {
+	if len(sent) != 2 || !sent[0].rich || !sent[1].rich || !strings.Contains(sent[0].text, "🟢 carry и support выиграли") || !strings.Contains(sent[1].text, "🟢 other alias выиграл на Invoker") {
 		t.Fatal(sent)
 	}
 	for _, pair := range [][2]int64{{a.ID, p}, {a.ID, q}, {b.ID, p}} {

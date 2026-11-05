@@ -47,6 +47,12 @@ func tokenize(text string) ([]token, error) {
 				return nil, errors.New("unterminated HTML tag")
 			}
 			raw := text[:end+1]
+			if raw == "<br>" {
+				// A rich inline line break counts as one character and has no closing tag.
+				out = append(out, token{raw: raw, units: 1})
+				text = text[end+1:]
+				continue
+			}
 			names := tagName.FindStringSubmatch(raw)
 			if len(names) == 0 {
 				return nil, errors.New("invalid HTML tag")

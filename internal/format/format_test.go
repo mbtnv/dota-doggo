@@ -30,8 +30,8 @@ func TestFormatterReference(t *testing.T) {
 		group []Participant
 		want  []string
 	}{
-		{"single", group[:1], []string{"mid &amp; carry", "Invoker", "🟢 Победа", "5/5/10", "700 / 800", "320", "23.0K / 5.0K / 0.0K", "42%", "Party 2", "2026-03-10 18:00 MSK", "/matches/999"}},
-		{"shared", group, []string{"mid &amp; carry", "Second", "Crystal Maiden", "🔴 Поражение", "0/6/1", "300 / 400", "100%", "/players/987654321"}},
+		{"single", group[:1], []string{"🟢 mid &amp; carry выиграл на Invoker", "5/5/10", "700 / 800", "Добито крипов · 320", "Урон героям · 23000", "Урон строениям · 5000", "Лечение · 0", "42%", "Пати из 2", "All Pick · Ranked", "10.03.2026", "18:00 MSK", "/matches/999"}},
+		{"shared", group, []string{"🟢 mid &amp; carry выиграл<br>🔴 Second проиграл", "Crystal Maiden", "0/6/1", "300 / 400", "100%", "/players/987654321"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			parts, err := f.MatchParts(tc.group, c, "Europe/Moscow")

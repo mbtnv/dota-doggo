@@ -50,6 +50,17 @@ func TestSplitSectionsKeepsGamesWhole(t *testing.T) {
 		}
 	}
 }
+
+func TestRichLineBreakCountsAsOneCharacter(t *testing.T) {
+	const text = "<b>🐶<br>Riki</b>"
+	if n, err := HTMLLength(text); err != nil || n != 7 {
+		t.Fatal(n, err)
+	}
+	chunks, err := SplitHTML(text, 3)
+	if err != nil || len(chunks) != 3 || chunks[0] != "<b>🐶<br></b>" {
+		t.Fatal(chunks, err)
+	}
+}
 func TestLongHeaderDoesNotDropSections(t *testing.T) {
 	header := "<b>" + strings.Repeat("H", 80) + "</b>"
 	section := "<b>END</b>"

@@ -3,7 +3,6 @@ package format
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -139,8 +138,6 @@ func richTableParts(header, tableHead string, entries []richEntry, footer string
 		b.WriteString(footer)
 		return b.String()
 	}
-	var parts []string
-	var batch []richEntry
 	pageSize := 20
 	for _, entry := range entries {
 		if entry.details != "" {
@@ -148,34 +145,31 @@ func richTableParts(header, tableHead string, entries []richEntry, footer string
 			break
 		}
 	}
-	flush := func() error {
-		part, err := EncodeRichPart(render(batch))
-		if err == nil {
-			parts = append(parts, part)
+	return paginateRich(entries, pageSize, render)
+}
+
+// paginateRich keeps each entry whole. A single large entry may exceed the
+// readability target, but EncodeRichPart still enforces the rich message limit.
+func paginateRich[T any](entries []T, pageSize int, render func([]T) string) ([]string, error) {
+	parts := []string{}
+	for len(entries) > 0 {
+		end := 1
+		for end < min(pageSize, len(entries)) {
+			length, err := HTMLLength(render(entries[:end+1]))
+			if err != nil {
+				return nil, err
+			}
+			if length > TelegramTextLimit {
+				break
+			}
+			end++
 		}
-		return err
-	}
-	for _, entry := range entries {
-		candidate := append(append([]richEntry(nil), batch...), entry)
-		n, err := HTMLLength(render(candidate))
+		part, err := EncodeRichPart(render(entries[:end]))
 		if err != nil {
 			return nil, err
 		}
-		if len(batch) > 0 && (len(candidate) > pageSize || n > TelegramTextLimit) {
-			if err := flush(); err != nil {
-				return nil, err
-			}
-			batch = nil
-		}
-		// Rich messages allow 32768 characters. A single unusually large entry
-		// may exceed our readability budget, but cannot exceed the API limit.
-		if one, err := HTMLLength(render([]richEntry{entry})); err != nil || one > TelegramRichTextLimit {
-			return nil, fmt.Errorf("rich message entry exceeds text limit or is invalid")
-		}
-		batch = append(batch, entry)
-	}
-	if err := flush(); err != nil {
-		return nil, err
+		parts = append(parts, part)
+		entries = entries[end:]
 	}
 	return parts, nil
 }

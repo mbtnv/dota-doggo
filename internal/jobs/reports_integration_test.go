@@ -219,7 +219,7 @@ func TestPollingUsesCachedConstantsWhenRefreshFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	sent := sender.snapshot()
-	if len(sent) != 1 || !strings.Contains(sent[0].text, "Cached Invoker") || !strings.Contains(sent[0].text, "GPM/XPM</b>: 600 /") {
+	if len(sent) != 1 || !strings.Contains(sent[0].text, "Cached Invoker") || !strings.Contains(sent[0].text, "GPM/XPM · 600 /") {
 		t.Fatal(sent)
 	}
 }

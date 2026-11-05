@@ -6,7 +6,6 @@ import (
 	"html"
 	"net/url"
 	"sort"
-	"strings"
 	"time"
 
 	"dota-doggo/internal/domain"
@@ -55,26 +54,19 @@ func party(m domain.Match) string {
 		return ""
 	}
 	if *m.PartySize == 1 {
-		return " · Solo"
+		return " · Соло"
 	}
-	return fmt.Sprintf(" · Party %d", *m.PartySize)
+	return fmt.Sprintf(" · Пати из %d", *m.PartySize)
 }
 func Datetime(at time.Time, zone string) string {
+	return localTime(at, zone).Format("2006-01-02 15:04 MST")
+}
+func localTime(at time.Time, zone string) time.Time {
 	loc, err := time.LoadLocation(zone)
 	if err != nil {
 		loc = time.UTC
 	}
-	return at.In(loc).Format("2006-01-02 15:04 MST")
-}
-func damage(m domain.Match) string {
-	return fmt.Sprintf("<b>HD/TD/HH</b>: %.1fK / %.1fK / %.1fK", float64(m.HeroDamage)/1000, float64(m.TowerDamage)/1000, float64(m.HeroHealing)/1000)
-}
-func (f Formatter) kda(m domain.Match) string {
-	parts := []string{fmt.Sprintf("<b>KDA</b>: %d/%d/%d", m.Kills, m.Deaths, m.Assists)}
-	for _, s := range domain.CalculateStatistics(m, f.Calculators...) {
-		parts = append(parts, "<b>"+escape(s.Label)+"</b>: "+escape(s.Value))
-	}
-	return strings.Join(parts, " | ")
+	return at.In(loc)
 }
 
 // GroupMatches orders games newest first and participants in the caller's player
